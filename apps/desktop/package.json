@@ -2,6 +2,8 @@
   "name": "@diffusionstudio/desktop",
   "private": true,
   "version": "0.200.0",
+  "author": "Diffusion Studio",
+  "description": "A motion graphics editor for creating videos in code",
   "license": "MPL-2.0",
   "repository": {
     "type": "git",
@@ -17,15 +19,18 @@
     "stage:cli": "npm --prefix ../cli run build && node scripts/stage-cli.mjs",
     "stage:docs": "node scripts/stage-docs.mjs",
     "check": "tsc --noEmit",
+    "test:deep-links": "node scripts/test-deep-links.mjs",
     "dev": "npm run build && electron-forge start",
     "package": "npm run build && npm run build:web && npm run stage:cli && npm run stage:docs && electron-forge package",
     "make": "npm run build && npm run build:web && npm run stage:cli && npm run stage:docs && electron-forge make",
+    "make:windows": "npm run build && npm run build:web && npm run stage:cli && npm run stage:docs && electron-forge make --platform=win32 --arch=x64",
     "publish": "npm run build && npm run build:web && npm run stage:cli && npm run stage:docs && electron-forge publish",
     "make:icns": "sh scripts/make-icns.sh"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-dmg": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/publisher-github": "^7.11.1",
     "@types/babel__core": "^7.20.5",

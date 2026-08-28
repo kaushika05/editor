@@ -4,6 +4,7 @@
 
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { PublisherGithub } from '@electron-forge/publisher-github';
 import { readFileSync } from 'node:fs';
@@ -41,6 +42,17 @@ const config: ForgeConfig = {
         : undefined,
   },
   makers: [
+    new MakerSquirrel(
+      {
+        name: 'diffusion_studio',
+        authors: 'Diffusion Studio Inc.',
+        description: 'The professional video editor built for agents',
+        setupExe: `Diffusion-Studio-${process.arch}-Setup.exe`,
+        setupIcon: './assets/icon.ico',
+        noMsi: true,
+      },
+      ['win32'],
+    ),
     new MakerZIP({}, ['darwin']),
     new MakerDMG({
       name: `Diffusion-Studio-${process.arch}`,

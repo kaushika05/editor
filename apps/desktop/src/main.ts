@@ -11,6 +11,8 @@ import { updateElectronApp } from "update-electron-app";
 import { startCliServer, stopCliServer, isHeadless } from "./cli-server";
 import { trackInstall } from "./analytics";
 import { setupAppMenu } from "./menu";
+import { mainWindowOptions } from "./window-options";
+import { APP_PROTOCOL, deepLinkChannel, findProtocolUrl } from "./deep-links";
 import { mainBridge } from "./main-manager";
 import { MAIN_CHANNELS } from "./main-channels";
 import {
@@ -43,7 +45,6 @@ import type { DeepLinkChannel } from "./main-channels";
 import type { LogEntry } from "@diffusionstudio/cli/protocol";
 
 const DEV_URL = "http://localhost:5173";
-const AUTH_PROTOCOL = "diffusion";
 const MACOS_CORNER_RADIUS = 18;
 const MACOS_BACKDROP = { blur: 80, red: 0.07, green: 0.07, blue: 0.07, alpha: 0.9 };
 
@@ -77,8 +78,8 @@ function applyBackdrop() {
   setNativeBackdrop(mainWindow.getNativeWindowHandle(), blur, red, green, blue, alpha);
 }
 
-if (app.isPackaged && !process.argv.includes("--hidden")) {
-  updateElectronApp({ repo: "diffusionstudio/editor" });
+if (app.isPackaged && !process.argv.includes("--hidden") && process.env.DISABLE_AUTO_UPDATE !== "1") {
+  updateElectronApp({ repo: process.env.DIFFUSION_UPDATE_REPOSITORY ?? "diffusionstudio/editor" });
 }
 
 const openWrites = new Map<string, { handle: FileHandle; path: string }>();
@@ -112,26 +113,8 @@ function captureConsole(window: BrowserWindow) {
   });
 }
 
-function findProtocolUrl(argv: string[]): string | null {
-  return argv.find((arg) => arg.startsWith(`${AUTH_PROTOCOL}://`)) ?? null;
-}
-
 function isHiddenLaunch(argv: string[]): boolean {
   return argv.includes("--hidden");
-}
-
-// diffusion://auth/callback → auth, diffusion://checkout/callback → checkout.
-function deepLinkChannel(url: string): DeepLinkChannel | null {
-  let host: string;
-  try {
-    host = new URL(url).hostname;
-  } catch {
-    return null;
-  }
-
-  if (host === "auth") return MAIN_CHANNELS.AUTH_CALLBACK;
-  if (host === "checkout") return MAIN_CHANNELS.CHECKOUT_CALLBACK;
-  return null;
 }
 
 function deliverDeepLink(url: string) {
@@ -175,19 +158,7 @@ async function setFileInputFiles(selector: string, absolutePath: string) {
 }
 
 function createWindow(show = true) {
-  mainWindow = new BrowserWindow({
-    show: false,
-    width: 1200,
-    height: 800,
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 14, y: 14 },
-    ...(process.platform === "darwin"
-      ? { vibrancy: "sidebar" as const, backgroundColor: "#00000000" }
-      : { backgroundColor: "#1c1c1c" }),
-    webPreferences: {
-      preload: join(app.getAppPath(), "dist", "preload.js"),
-    },
-  });
+  mainWindow = new BrowserWindow(mainWindowOptions(join(app.getAppPath(), "dist", "preload.js")));
 
   captureConsole(mainWindow);
 
@@ -228,11 +199,11 @@ function createWindow(show = true) {
 }
 
 if (process.defaultApp && process.argv.length >= 2) {
-  app.setAsDefaultProtocolClient(AUTH_PROTOCOL, process.execPath, [
+  app.setAsDefaultProtocolClient(APP_PROTOCOL, process.execPath, [
     join(process.cwd(), process.argv[1]!),
   ]);
 } else {
-  app.setAsDefaultProtocolClient(AUTH_PROTOCOL);
+  app.setAsDefaultProtocolClient(APP_PROTOCOL);
 }
 
 if (app.requestSingleInstanceLock()) {

@@ -484,6 +484,8 @@ const SCRIPTS: Record<string, string> = {
   open: "dapi open .",
   context: "dapi context",
   capture: "dapi capture",
+  check: "dapi check",
+  render: "dapi render",
   probe: "dapi media probe",
   transcribe: "dapi media transcribe",
   grab: "dapi media grab",
@@ -645,6 +647,8 @@ All of them talk to the running app, except \`fonts\` and \`fetch\`.
 | \`open\` | \`dapi open .\` | Launch the app with this project open. |
 | \`context\` | \`dapi context\` | Which project the app has open, where its playhead sits, its fonts, where its generations stand. |
 | \`capture\` | \`dapi capture <id>\` | Render frames of a scene, as an export would, to labelled PNG contact sheets. |
+| \`check\` | \`dapi check <id>\` | Check a scene or subtree for structural mistakes. |
+| \`render\` | \`dapi render <id>\` | Render a scene through the same encoder used by the desktop Export command. |
 | \`probe\` | \`dapi media probe <id\\|path>\` | Container and per-track metadata, without decoding. |
 | \`transcribe\` | \`dapi media transcribe <id\\|path>\` | Timed speech transcript, word by word. |
 | \`grab\` | \`dapi media grab <id\\|path>\` | Decode frames of a video to labelled PNG contact sheets. |
@@ -747,7 +751,7 @@ function docsSources(): string {
  * moves with a release; in development a refresh is forced by deleting the
  * folder. This runs on every compile, so the up-to-date case is one read.
  */
-async function syncDocs(dir: string): Promise<void> {
+async function syncDocsNow(dir: string): Promise<void> {
   const docsDir = join(dir, APP_DIR, "docs");
   const stampFile = join(docsDir, ".version");
   const version = app.getVersion();
@@ -769,6 +773,25 @@ async function syncDocs(dir: string): Promise<void> {
   }
   // Written last, so a copy that died refuses to pass for a synced one.
   await writeFile(stampFile, version + "\n", "utf8");
+}
+
+// Opening a project can compile from the route and from a CLI request at
+// nearly the same time. On Windows, two recursive refreshes can otherwise
+// race between `rm` and `cp` and leave an ENOTEMPTY warning. Serialize the
+// refresh for each project; a queued caller sees the completed version stamp
+// and returns without copying again.
+const docsSyncs = new Map<string, Promise<void>>();
+
+async function syncDocs(dir: string): Promise<void> {
+  const key = resolve(dir).toLowerCase();
+  const previous = docsSyncs.get(key) ?? Promise.resolve();
+  const current = previous.catch(() => {}).then(() => syncDocsNow(dir));
+  docsSyncs.set(key, current);
+  try {
+    await current;
+  } finally {
+    if (docsSyncs.get(key) === current) docsSyncs.delete(key);
+  }
 }
 
 async function writeIfMissing(dir: string, name: string, content: string): Promise<void> {
