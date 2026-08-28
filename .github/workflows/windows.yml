@@ -44,6 +44,9 @@ jobs:
       - name: Test deep-link routing
         run: npm run test:deep-links
 
+      - name: Test native Windows window behavior
+        run: npm run test:window
+
       - name: Build desktop on Windows
         run: npm run build --workspace=@diffusionstudio/desktop
 

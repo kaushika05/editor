@@ -19,6 +19,7 @@
     "make:windows": "npm run make:windows --workspace=@diffusionstudio/desktop",
     "test:cli-handshake": "npm run test:handshake --workspace=@diffusionstudio/cli",
     "test:deep-links": "npm run test:deep-links --workspace=@diffusionstudio/desktop",
+    "test:window": "npm run test:window --workspace=@diffusionstudio/desktop",
     "release": "node scripts/release.mjs",
     "postinstall": "patch-package",
     "lint": "npm run lint --workspaces --if-present",
