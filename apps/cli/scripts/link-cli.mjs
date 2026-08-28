@@ -37,11 +37,17 @@ function setUserPath(value) {
 }
 
 function updateWindowsPath(binDir, add) {
-  const entries = queryUserPath().split(";").map((value) => value.trim()).filter(Boolean);
-  const key = binDir.toLowerCase();
-  const kept = entries.filter((value) => value.replace(/[\\/]+$/, "").toLowerCase() !== key);
-  if (add) kept.push(binDir);
-  setUserPath(kept.join(";"));
+  const current = queryUserPath();
+  const key = binDir.replace(/[\\/]+$/, "").toLowerCase();
+  const entries = current.split(";");
+  const matches = (value) => value.trim().replace(/[\\/]+$/, "").toLowerCase() === key;
+
+  if (add) {
+    if (!entries.some(matches)) setUserPath(current ? `${current};${binDir}` : binDir);
+    return;
+  }
+
+  if (entries.some(matches)) setUserPath(entries.filter((value) => !matches(value)).join(";"));
 }
 
 if (process.platform === "win32") {
@@ -81,4 +87,3 @@ if (action === "remove") {
   chmodSync(bundle, 0o755);
   console.log(`Linked ${link} -> ${bundle}`);
 }
-

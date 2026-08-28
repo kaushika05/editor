@@ -39,11 +39,17 @@ function setUserPath(value: string): void {
 }
 
 function updateUserPath(binDir: string, add: boolean): void {
-  const entries = queryUserPath().split(";").map((entry) => entry.trim()).filter(Boolean);
+  const current = queryUserPath();
+  const entries = current.split(";");
   const key = binDir.replace(/[\\/]+$/, "").toLowerCase();
-  const kept = entries.filter((entry) => entry.replace(/[\\/]+$/, "").toLowerCase() !== key);
-  if (add) kept.push(binDir);
-  setUserPath(kept.join(";"));
+  const matches = (entry: string) => entry.trim().replace(/[\\/]+$/, "").toLowerCase() === key;
+
+  if (add) {
+    if (!entries.some(matches)) setUserPath(current ? `${current};${binDir}` : binDir);
+    return;
+  }
+
+  if (entries.some(matches)) setUserPath(entries.filter((entry) => !matches(entry)).join(";"));
 }
 
 async function installWindowsCli(): Promise<string> {
@@ -110,4 +116,3 @@ export async function uninstallCli(): Promise<string> {
   if (process.platform === "win32") return uninstallWindowsCli();
   throw new Error("Use the platform package manager to remove dapi on this platform.");
 }
-
