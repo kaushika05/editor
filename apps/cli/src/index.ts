@@ -415,13 +415,24 @@ async function waitForProjectMount(dir: string, timeoutMs = 30000): Promise<void
 }
 
 async function openProject(path: string | undefined, opts: OpenOptions): Promise<void> {
-  const launched = await launchDesktopApp(opts.background ?? false);
+  let running = false;
+  try {
+    await editor.ping.query();
+    running = true;
+  } catch {
+    // No transport yet: cold-launch below.
+  }
+  const launched = running ? false : await launchDesktopApp(opts.background ?? false);
 
   try {
     // A cold launch needs the renderer up before the app can answer; when
     // nothing was launched there is nothing to wait for, so fail fast.
-    if (launched) await waitForCliSocket();
-    else await editor.ping.query();
+    if (!running) {
+      if (launched) await waitForCliSocket();
+      else await editor.ping.query();
+    }
+
+    if (!opts.background) await editor.show.mutate(undefined);
 
     if (path !== undefined) {
       const result = await editor.open.mutate({ dir: resolve(path) });

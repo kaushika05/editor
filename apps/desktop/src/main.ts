@@ -236,6 +236,18 @@ if (app.requestSingleInstanceLock()) {
     takePendingDeepLink(MAIN_CHANNELS.CHECKOUT_CALLBACK),
   );
   mainBridge.handle(MAIN_CHANNELS.WINDOW_IS_FULLSCREEN, () => mainWindow?.isFullScreen() ?? false);
+  mainBridge.handle(MAIN_CHANNELS.WINDOW_SHOW, () => {
+    if (!mainWindow || mainWindow.isDestroyed()) createWindow(true);
+    else {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+    return {
+      visible: mainWindow?.isVisible() ?? false,
+      focused: mainWindow?.isFocused() ?? false,
+    };
+  });
   mainBridge.handle(MAIN_CHANNELS.WINDOW_CAPTURE, async () => {
     if (!mainWindow || mainWindow.isDestroyed()) throw new Error("No main window");
     const image = await mainWindow.webContents.capturePage(undefined, { stayHidden: true });

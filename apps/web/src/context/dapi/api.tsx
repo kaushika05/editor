@@ -17,7 +17,8 @@ import { handleCheck } from "./check";
 import { handleLogs } from "./logs";
 import { handleModels } from "./models";
 import { handleVoices } from "./voices";
-import { cliBridge } from '@/lib/ipc';
+import { cliBridge, mainBridge } from '@/lib/ipc';
+import { MAIN_CHANNELS } from '@desktop/main-channels';
 import { createRouterCaller } from '@/lib/cli-rpc';
 import { openProjectFolder } from '@/projects';
 import { projectRoute } from '@/hooks/use-project-route';
@@ -111,6 +112,7 @@ function createAppRouter({ navigate, getUser, requireAuth }: AppRouterDeps) {
 
   return t.router({
     ping: t.procedure.query(() => {}),
+    show: m(() => mainBridge.call(MAIN_CHANNELS.WINDOW_SHOW, undefined)),
     open: m(async ({ dir }: { dir: string }) => {
       const project = await openProjectFolder(dir);
       navigate(projectRoute(project.id || project.name));

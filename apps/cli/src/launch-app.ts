@@ -46,7 +46,6 @@ function spawnDetached(executable: string, args: string[]): Promise<boolean> {
     const child = spawn(executable, args, {
       detached: true,
       stdio: "ignore",
-      windowsHide: true,
       env,
     });
     child.once("error", () => resolve(false));
@@ -57,7 +56,7 @@ function spawnDetached(executable: string, args: string[]): Promise<boolean> {
   });
 }
 
-/** Cold-launches or surfaces the installed desktop application. */
+/** Cold-launches the installed desktop application. */
 export async function launchDesktopApp(background: boolean): Promise<boolean> {
   if (process.platform === "darwin") {
     const args = background ? ["-g", "-a", APP_NAME, "--args", "--hidden"] : ["-a", APP_NAME];
