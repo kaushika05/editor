@@ -390,6 +390,22 @@ async function renderNode(id: string, opts: RenderOptions): Promise<void> {
 
 type OpenOptions = { background?: boolean };
 
+function sameProjectPath(left: string, right: string): boolean {
+  const a = resolve(left).replace(/[\\/]+$/, "");
+  const b = resolve(right).replace(/[\\/]+$/, "");
+  return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+async function waitForProjectMount(dir: string, timeoutMs = 30000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const context = await editor.context.query();
+    if (context.projectDir && sameProjectPath(context.projectDir, dir)) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timed out waiting for ${APP_NAME} to mount ${dir}`);
+}
+
 async function openProject(path: string | undefined, opts: OpenOptions): Promise<void> {
   const launched = await launchDesktopApp(opts.background ?? false);
 
@@ -401,6 +417,7 @@ async function openProject(path: string | undefined, opts: OpenOptions): Promise
 
     if (path !== undefined) {
       const result = await editor.open.mutate({ dir: resolve(path) });
+      await waitForProjectMount(result.dir);
       console.log(JSON.stringify(result));
     }
   } catch (e) {
