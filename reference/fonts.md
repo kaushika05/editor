@@ -1,6 +1,10 @@
 # `dapi fonts`
 
-Lists local fonts available on this machine. macOS only. Does not require the app to be running. Font families listed here are valid `fontFamily` values on [`<text>`](./jsx/text.md).
+Lists local fonts available on this machine. Supported on macOS and Windows;
+does not require the app to be running. macOS reads AppKit's registered font
+families. Windows reads the machine and per-user Fonts registry entries and
+normalizes common weight and italic names. Font families listed here are valid
+`fontFamily` values on [`<text>`](./jsx/text.md).
 
 ## Options
 

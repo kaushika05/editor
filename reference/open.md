@@ -44,5 +44,5 @@ With no path, nothing: exit code `0` says the app is up.
 ## Errors
 
 - The path exists but is not a folder.
-- Off macOS, the app cannot be launched; the command then requires it to
-  already be running.
+- On Windows, no packaged application executable can be found. Install the
+  desktop app or launch a development checkout first.
