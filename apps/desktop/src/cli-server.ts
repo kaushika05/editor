@@ -10,6 +10,7 @@ import { CLI_WIRE, SOCKET_PATH } from "@diffusionstudio/cli/protocol";
 import type { CliHandshake, CliHandshakeReply } from "@diffusionstudio/cli/protocol";
 import { mainBridge } from "./main-manager";
 import { MAIN_CHANNELS } from "./main-channels";
+import { createHandshakeFrameReader } from "./cli-handshake";
 
 let cliServer: Server | null = null;
 let currentWindow: BrowserWindow | null = null;
@@ -106,11 +107,7 @@ export function startCliServer() {
 
   cliServer = createServer({ allowHalfOpen: true }, (sock: Socket) => {
     enableHeadless();
-    let buf = "";
-    let handled = false;
     const handle = async (raw: string) => {
-      if (handled) return;
-      handled = true;
       sock.setTimeout(0);
       let handshake: CliHandshake;
       try {
@@ -124,18 +121,17 @@ export function startCliServer() {
       }
       await deliverHandshake(handshake, sock);
     };
+    const framing = createHandshakeFrameReader((raw) => void handle(raw));
     sock.setEncoding("utf8");
     sock.setTimeout(60000, () => sock.destroy());
     // Newline-framed clients (required on Windows, where named pipes cannot
     // half-open) are answered as soon as the first line arrives; legacy
     // clients that frame by half-closing are handled on "end".
     sock.on("data", (chunk) => {
-      buf += chunk;
-      const nl = buf.indexOf("\n");
-      if (nl !== -1) void handle(buf.slice(0, nl));
+      framing.push(chunk);
     });
     sock.on("end", () => {
-      void handle(buf);
+      framing.end();
     });
     sock.on("error", () => {
       // Client hung up; nothing to do.

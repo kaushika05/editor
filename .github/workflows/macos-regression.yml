@@ -1,4 +1,4 @@
-name: Windows
+name: macOS regression
 
 on:
   workflow_dispatch:
@@ -11,9 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  validate-windows:
-    runs-on: windows-latest
-    timeout-minutes: 45
+  validate-macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +26,7 @@ jobs:
         run: npm ci
 
       - name: Prepare client environment
-        shell: pwsh
-        run: Copy-Item apps/web/.env.example apps/web/.env
+        run: cp apps/web/.env.example apps/web/.env
 
       - name: Typecheck
         run: npm run check
@@ -35,10 +34,7 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Build CLI on Windows
-        run: npm run build --workspace=@diffusionstudio/cli
-
-      - name: Test named-pipe handshake
+      - name: Test Unix-socket CLI handshake
         run: npm run test:cli-handshake
 
       - name: Test newline and legacy EOF framing
@@ -47,21 +43,10 @@ jobs:
       - name: Test deep-link routing
         run: npm run test:deep-links
 
-      - name: Test native Windows window behavior
-        run: npm run test:window
-
-      - name: Build desktop on Windows
+      - name: Build desktop and AppKit addon
         run: npm run build --workspace=@diffusionstudio/desktop
 
-      - name: Make unsigned Windows installer
-        run: npm run make:windows
+      - name: Package unsigned macOS application
+        run: npm run package --workspace=@diffusionstudio/desktop
         env:
           SKIP_SIGN: "1"
-
-      - name: Upload Windows installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: diffusion-studio-windows-${{ github.sha }}
-          path: apps/desktop/out/make/**
-          if-no-files-found: error
-          retention-days: 14

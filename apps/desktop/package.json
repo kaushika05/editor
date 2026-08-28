@@ -20,6 +20,7 @@
     "stage:docs": "node scripts/stage-docs.mjs",
     "check": "tsc --noEmit",
     "test:deep-links": "node scripts/test-deep-links.mjs",
+    "test:cli-framing": "node scripts/test-cli-framing.mjs",
     "test:window": "node scripts/test-window-behavior.mjs",
     "dev": "npm run build && electron-forge start",
     "package": "npm run build && npm run build:web && npm run stage:cli && npm run stage:docs && electron-forge package",
