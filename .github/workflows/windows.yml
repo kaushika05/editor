@@ -1,0 +1,61 @@
+name: Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, windows-support]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare client environment
+        shell: pwsh
+        run: Copy-Item apps/web/.env.example apps/web/.env
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build CLI on Windows
+        run: npm run build --workspace=@diffusionstudio/cli
+
+      - name: Test named-pipe handshake
+        run: npm run test:cli-handshake
+
+      - name: Test deep-link routing
+        run: npm run test:deep-links
+
+      - name: Build desktop on Windows
+        run: npm run build --workspace=@diffusionstudio/desktop
+
+      - name: Make unsigned Windows installer
+        run: npm run make:windows
+        env:
+          SKIP_SIGN: "1"
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: diffusion-studio-windows-${{ github.sha }}
+          path: apps/desktop/out/make/**
+          if-no-files-found: error
+          retention-days: 14
