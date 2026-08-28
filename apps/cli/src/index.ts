@@ -399,11 +399,19 @@ function sameProjectPath(left: string, right: string): boolean {
 async function waitForProjectMount(dir: string, timeoutMs = 30000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const context = await editor.context.query();
-    if (context.projectDir && sameProjectPath(context.projectDir, dir)) return;
+    try {
+      const context = await editor.context.query();
+      // The project provider is mounted before its source finishes compiling.
+      // Wait for the renderer's world as well so a command chained directly
+      // after `dapi open` cannot observe the editor's empty loading world.
+      if (context.projectDir && sameProjectPath(context.projectDir, dir) && context.projectReady) return;
+    } catch {
+      // Navigation, compilation, and the renderer transport can all be between
+      // states briefly. Retry until the single deadline below.
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Timed out waiting for ${APP_NAME} to mount ${dir}`);
+  throw new Error(`Timed out waiting for ${APP_NAME} to mount and compile ${dir}`);
 }
 
 async function openProject(path: string | undefined, opts: OpenOptions): Promise<void> {

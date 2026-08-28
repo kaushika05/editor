@@ -17,6 +17,7 @@ One JSON object:
 {
   rootDir:      string | null;   // absolute folder projects live under; null until one is picked
   projectDir:   string | null;   // absolute open project folder — where the JSX being edited lives; null when none is open
+  projectReady: boolean;         // true after the open project's compiled scene has mounted
   currentTime:  number | null;   // playhead in the active scene, in seconds; null if no scene is active
   fontFamilies: string[];        // families registered in the running world, valid as `fontFamily`
   generations:  {                // every generated source in the project, and where it stands
@@ -30,8 +31,8 @@ One JSON object:
 ```
 
 With no project open (the app sits at the dashboard) the report is just
-`{ rootDir, projectDir: null }`: there is no playhead, no world, and no fonts
-to speak of. Open one with [`dapi open`](./open.md).
+`{ rootDir, projectDir: null, projectReady: false }`: there is no playhead, no
+world, and no fonts to speak of. Open one with [`dapi open`](./open.md).
 
 `rootDir` is reported whether or not a project is open — it is where a caller
 with nothing open goes to create or find one.
@@ -41,6 +42,10 @@ and `end` are placed against, and in the same unit.
 
 `projectDir` is the folder the app is editing, which is not necessarily the
 one a command was run from: check it before writing to source files.
+
+`projectReady` distinguishes a route that has mounted from a project whose
+compiled scene is available. `dapi open` waits for this automatically, so the
+next capture, check, render, or screenshot command can run immediately.
 
 `fontFamilies` is what text can be drawn with right now — loaded into the world,
 not merely named in the source — and always includes the editor default. For

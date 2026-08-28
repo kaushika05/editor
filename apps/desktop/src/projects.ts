@@ -1103,15 +1103,39 @@ export async function readManifest(dir: string): Promise<unknown> {
  * mid-write leaves the old manifest, and marked as ours so the watcher does
  * not hand it back as a change.
  */
-export async function writeManifest(dir: string, manifest: unknown): Promise<void> {
+async function writeManifestNow(dir: string, manifest: unknown): Promise<void> {
   const path = join(dir, MANIFEST_FILE);
-  const temp = join(dir, `.${MANIFEST_FILE}.tmp`);
+  const tempName = `.${MANIFEST_FILE}.${process.pid}.${nanoid()}.tmp`;
+  const temp = join(dir, tempName);
   const text = stringifyYaml(manifest, { lineWidth: 0 });
   markSelfWrite(dir, MANIFEST_FILE);
-  markSelfWrite(dir, `.${MANIFEST_FILE}.tmp`);
-  await writeFile(temp, `# Diffusion Studio asset library. Edited by the app; hand edits are read on the next load.
+  markSelfWrite(dir, tempName);
+  try {
+    await writeFile(temp, `# Diffusion Studio asset library. Edited by the app; hand edits are read on the next load.
 ${text}`, "utf8");
-  await rename(temp, path);
+    await rename(temp, path);
+  } finally {
+    await rm(temp, { force: true });
+  }
+}
+
+// First-open scaffolding and the renderer's asset scan can both decide that a
+// manifest needs writing. Keep their atomic replacements ordered per project;
+// sharing one fixed temp name loses the second writer on Windows when the
+// first rename removes it.
+const manifestWrites = new Map<string, Promise<void>>();
+
+export async function writeManifest(dir: string, manifest: unknown): Promise<void> {
+  const resolved = resolve(dir);
+  const key = process.platform === "win32" ? resolved.toLowerCase() : resolved;
+  const previous = manifestWrites.get(key) ?? Promise.resolve();
+  const current = previous.catch(() => {}).then(() => writeManifestNow(dir, manifest));
+  manifestWrites.set(key, current);
+  try {
+    await current;
+  } finally {
+    if (manifestWrites.get(key) === current) manifestWrites.delete(key);
+  }
 }
 
 // ---------------------------------------------------------------------------
