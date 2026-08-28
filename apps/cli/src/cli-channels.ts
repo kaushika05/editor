@@ -66,6 +66,28 @@ export type CaptureRequest = {
 
 export type CaptureResult = TimecodedImage[];
 
+export type RenderFormat = "mp4" | "webm" | "ogg" | "mov";
+export type RenderRequest = {
+  id: string;
+  path: string;
+  format?: RenderFormat;
+  video?: {
+    enabled?: boolean;
+    codec?: "avc" | "hevc" | "vp9" | "av1" | "vp8";
+    bitrate?: number;
+    fps?: number;
+    resolution?: number;
+  };
+  audio?: {
+    enabled?: boolean;
+    codec?: "aac" | "opus";
+    bitrate?: number;
+    sampleRate?: number;
+  };
+};
+
+export type RenderResult = { path: string; format: RenderFormat };
+
 export type MediaTranscribeRequest = AssetRef;
 export type TranscriptWord = { text: string; start: number; end: number };
 export type TranscriptSegment = { text: string; words: TranscriptWord[] };

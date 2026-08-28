@@ -11,10 +11,13 @@
     "./channels": "./src/cli-channels.ts"
   },
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --external:esbuild --external:@babel/core --external:@babel/preset-typescript --external:babel-preset-solid --external:bufferutil --external:utf-8-validate --outfile=dist/index.js && chmod +x dist/index.js",
+    "build": "node scripts/build.mjs",
     "check": "tsc --noEmit",
-    "symlink:remove": "rm -f /opt/homebrew/bin/dapi",
-    "symlink:create": "npm run build && ln -sf \"$PWD/dist/index.js\" /opt/homebrew/bin/dapi"
+    "test:handshake": "npm run build && node scripts/test-handshake.mjs",
+    "link:remove": "node scripts/link-cli.mjs remove",
+    "link:create": "npm run build && node scripts/link-cli.mjs create",
+    "symlink:remove": "npm run link:remove",
+    "symlink:create": "npm run link:create"
   },
   "dependencies": {
     "@babel/core": "^7.29.7",

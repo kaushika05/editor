@@ -24,6 +24,8 @@ import { projectRoute } from '@/hooks/use-project-route';
 import { assert } from "@/utils/common";
 import { handleWindowScreenshot } from "./window";
 import { useFullscreenState } from "@/hooks/use-fullscreen-state";
+import { useEngineContext } from "@/engine";
+import { handleRender } from "./render";
 
 import type { JSX, Accessor } from 'solid-js';
 import type { Navigator } from '@solidjs/router';
@@ -76,11 +78,12 @@ export function EditorApiProvider(props: EditorApiProviderProps) {
   const project = useProject();
   const isFullscreen = useFullscreenState();
   const world = useWorld();
+  const engine = useEngineContext();
 
   createEffect(() => {
     if (!window.desktop || project.id() !== world.get(Project)?.id) return;
 
-    setEditorSession({ world, project });
+    setEditorSession({ world, project, engine });
     onCleanup(() => setEditorSession(null));
   });
 
@@ -116,6 +119,7 @@ function createAppRouter({ navigate, getUser, requireAuth }: AppRouterDeps) {
     whoami: t.procedure.query(() => getUser()),
     context: q0(handleContextGet(editorSession)),
     capture: q(handleCapture(requireEditorSession)),
+    render: m(handleRender(requireEditorSession)),
     check: q(handleCheck(requireEditorSession)),
     models: q(handleModels()),
     logs: q(handleLogs()),
