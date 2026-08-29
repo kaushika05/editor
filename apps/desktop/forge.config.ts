@@ -4,12 +4,22 @@
 
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { PublisherGithub } from '@electron-forge/publisher-github';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const { version } = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf8'));
+const [releaseOwner, releaseName] = (
+  process.env.DIFFUSION_GITHUB_REPOSITORY ??
+  process.env.GITHUB_REPOSITORY ??
+  'diffusionstudio/editor'
+).split('/');
+
+if (!releaseOwner || !releaseName) {
+  throw new Error('DIFFUSION_GITHUB_REPOSITORY must use the owner/repository form');
+}
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -41,6 +51,17 @@ const config: ForgeConfig = {
         : undefined,
   },
   makers: [
+    new MakerSquirrel(
+      {
+        name: 'diffusion_studio',
+        authors: 'Diffusion Studio Inc.',
+        description: 'The professional video editor built for agents',
+        setupExe: `Diffusion-Studio-${process.arch}-Setup.exe`,
+        setupIcon: './assets/icon.ico',
+        noMsi: true,
+      },
+      ['win32'],
+    ),
     new MakerZIP({}, ['darwin']),
     new MakerDMG({
       name: `Diffusion-Studio-${process.arch}`,
@@ -60,7 +81,9 @@ const config: ForgeConfig = {
   ],
   publishers: [
     new PublisherGithub({
-      repository: { owner: 'diffusionstudio', name: 'editor' },
+      // GitHub Actions supplies GITHUB_REPOSITORY, so a fork publishes only
+      // to itself. Local/upstream release behavior keeps the original default.
+      repository: { owner: releaseOwner, name: releaseName },
       draft: true,
     }),
   ],

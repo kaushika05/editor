@@ -20,7 +20,7 @@ import { useNavigate } from "@solidjs/router";
 import { Show, onCleanup, onMount } from "solid-js";
 import { isInputTarget } from "@/utils";
 import { useEditorApi } from "@/context/dapi";
-import { downloadDesktopApp } from "@/lib/desktop-app";
+import { desktopAppDownloadLabel, downloadDesktopApp } from "@/lib/desktop-app";
 import { FileMenu } from "./file-menu";
 import { EditMenu } from "./edit-menu";
 import { ViewMenu } from "./view-menu";
@@ -156,7 +156,7 @@ export function ProjectMenu() {
                   <span class="grid h-7 w-6 shrink-0 place-items-center overflow-clip">
                     <Icon name="download" class="size-6" />
                   </span>
-                  Get desktop app (macOS)
+                  {desktopAppDownloadLabel()}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </Show>

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { AssetId, Computed, Fonts, FrameRate, Generating, getActiveEntity, Library, Name, PendingSource, Source, SourceError } from "@diffusionstudio/runtime";
+import { AssetId, Computed, Fonts, FrameRate, Generating, getActiveEntity, Library, Name, PendingSource, Scene, Source, SourceError } from "@diffusionstudio/runtime";
 
 import { getProjectsRoot } from "@/projects";
 
@@ -24,7 +24,7 @@ export function handleContextGet(session: Accessor<EditorSession | null>) {
     const rootDir = await getProjectsRoot();
 
     const open = session();
-    if (!open) return { rootDir, projectDir: null };
+    if (!open) return { rootDir, projectDir: null, projectReady: false };
 
     const { world, project } = open;
     const frameRate = world.get(FrameRate)?.value || 30;
@@ -33,6 +33,10 @@ export function handleContextGet(session: Accessor<EditorSession | null>) {
     return {
       rootDir,
       projectDir: project.dir(),
+      // The route and editor session exist before the compiled JSX has been
+      // mounted. Exposing that distinction lets `dapi open` wait until a
+      // command chained after it can safely address the project root.
+      projectReady: world.query(Scene).length > 0,
       // Seconds, the unit the source places clips in; null when no scene is
       // active, which is when there is no playhead to report.
       currentTime: active ? (active.get(Computed)?.localTime ?? 0) / frameRate : null,

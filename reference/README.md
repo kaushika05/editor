@@ -8,7 +8,7 @@ A project is a folder of that JSX, and **the source is the document**: the app c
 
 ## Groups
 
-**Top-level:** [`whoami`](./whoami.md), [`logs`](./logs.md), [`screenshot`](./screenshot.md), [`report`](./report.md), [`context`](./context.md) (alias `ctx`), [`capture`](./capture.md), [`check`](./check.md), [`models`](./models.md), [`voices`](./voices.md), [`fonts`](./fonts.md), [`fetch`](./fetch.md).
+**Top-level:** [`whoami`](./whoami.md), [`logs`](./logs.md), [`screenshot`](./screenshot.md), [`report`](./report.md), [`context`](./context.md) (alias `ctx`), [`capture`](./capture.md), [`render`](./render.md) (alias `export`), [`check`](./check.md), [`models`](./models.md), [`voices`](./voices.md), [`fonts`](./fonts.md), [`fetch`](./fetch.md).
 
 | Group | Alias | Scope |
 | ----- | ----- | ----- |
@@ -33,6 +33,7 @@ How the surface is divided:
 - [`dapi open`](./open.md): launch the app and open (or create) a project folder, anywhere on disk
 - [`dapi context`](./context.md): which project the app has open, where its playhead sits, its registered fonts, and where its generations stand
 - [`dapi capture`](./capture.md): render frames of a scene, as an export would, to a labelled contact sheet or one PNG per position
+- [`dapi render`](./render.md): render a scene to a media file through the desktop export encoder
 - [`dapi check`](./check.md): check a node's subtree for structural mistakes (black-frame gaps, never-visible nodes, failed sources) and report subtree stats
 
 ### Media
@@ -73,4 +74,4 @@ Time inputs take the `Time` format unless noted otherwise. Times in **outputs** 
 - **Unix-style names are canonical.** Commands without a natural Unix equivalent (`context`, `whoami`) keep their descriptive names.
 - **Stderr:** human-readable error messages.
 - **Exit codes:** `0` on success, `1` on any error (missing file, app not running, invalid input, IPC error).
-- **App must be running:** every command except `fonts` and `fetch` talks to the open Diffusion Studio instance. If the app isn't running, the CLI prints an instruction to launch it and exits `1`. `report` is the one command that reads from the app but tolerates its absence, recording it in the issue instead of failing.
+- **App launch:** `open` cold-launches an installed macOS or Windows app and waits for the CLI transport. Every other command except `fonts` and `fetch` needs the app. `report` tolerates its absence and records that in the issue.

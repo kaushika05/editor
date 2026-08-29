@@ -11,7 +11,16 @@ export function handleGetFullscreenState() {
 }
 
 export function handleWindowScreenshot() {
-  return () => mainBridge.call(MAIN_CHANNELS.WINDOW_CAPTURE, undefined);
+  return async () => {
+    // A project can finish mounting between two paints. Capture only after
+    // Solid's DOM updates and the canvas engine have both had a frame, so an
+    // immediately chained `dapi open && dapi screenshot` sees the scene rather
+    // than the loading shell.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return mainBridge.call(MAIN_CHANNELS.WINDOW_CAPTURE, undefined);
+  };
 }
 
 export function handleWindowFullscreenChange(mutate: (fullscreen: boolean) => void) {

@@ -3,7 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,10 +12,11 @@ import { version } from "../../../package.json";
 import { parseTime, TIME_FPS } from "@diffusionstudio/jsx";
 import { editor, errnoCode, GENERATE_TIMEOUT_MS, waitForCliSocket } from "./cli-client";
 import { listLocalFonts } from "./fonts";
+import { launchDesktopApp } from "./launch-app";
 import { buildIssueBody, createIssue } from "./report";
 import { fetchVideo } from "./ytdlp";
 import { MAX_FRAMES_PER_SHEET } from "./protocol";
-import type { AssetRef, FrameQuality, LogEntry, LogLevel, TimecodedImage } from "./protocol";
+import type { AssetRef, FrameQuality, LogEntry, LogLevel, RenderFormat, TimecodedImage } from "./protocol";
 
 // Long-running commands (renders, AI generation) override the default 60s.
 const GENERATE = { context: { timeoutMs: GENERATE_TIMEOUT_MS } };
@@ -313,28 +313,130 @@ async function checkNode(id: string): Promise<void> {
   }
 }
 
+type RenderOptions = {
+  output?: string;
+  format?: string;
+  resolution?: string;
+  fps?: string;
+  videoCodec?: string;
+  videoBitrate?: string;
+  audio?: boolean;
+  audioCodec?: string;
+  audioBitrate?: string;
+  sampleRate?: string;
+};
+
+function positiveNumber(value: string | undefined, flag: string): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.error(`${flag} must be a positive number (got "${value}")`);
+    process.exit(1);
+  }
+  return parsed;
+}
+
+async function renderNode(id: string, opts: RenderOptions): Promise<void> {
+  const formats: RenderFormat[] = ["mp4", "webm", "ogg", "mov"];
+  const format = (opts.format ?? "mp4") as RenderFormat;
+  if (!formats.includes(format)) {
+    console.error(`--format must be one of ${formats.join(", ")} (got "${opts.format}")`);
+    process.exit(1);
+  }
+
+  const videoCodecs = ["avc", "hevc", "vp9", "av1", "vp8"] as const;
+  if (opts.videoCodec !== undefined && !videoCodecs.includes(opts.videoCodec as typeof videoCodecs[number])) {
+    console.error(`--video-codec must be one of ${videoCodecs.join(", ")} (got "${opts.videoCodec}")`);
+    process.exit(1);
+  }
+  const audioCodecs = ["aac", "opus"] as const;
+  if (opts.audioCodec !== undefined && !audioCodecs.includes(opts.audioCodec as typeof audioCodecs[number])) {
+    console.error(`--audio-codec must be one of ${audioCodecs.join(", ")} (got "${opts.audioCodec}")`);
+    process.exit(1);
+  }
+
+  const filename = `${id.replace(/[^a-z0-9._-]+/gi, "-") || "render"}.${format}`;
+  const path = resolve(opts.output ?? filename);
+  mkdirSync(dirname(path), { recursive: true });
+
+  try {
+    const result = await editor.render.mutate(
+      {
+        id,
+        path,
+        format,
+        video: format === "ogg"
+          ? { enabled: false }
+          : {
+              resolution: positiveNumber(opts.resolution, "--resolution"),
+              fps: positiveNumber(opts.fps, "--fps"),
+              codec: opts.videoCodec as typeof videoCodecs[number] | undefined,
+              bitrate: positiveNumber(opts.videoBitrate, "--video-bitrate"),
+            },
+        audio: {
+          enabled: opts.audio,
+          codec: opts.audioCodec as typeof audioCodecs[number] | undefined,
+          bitrate: positiveNumber(opts.audioBitrate, "--audio-bitrate"),
+          sampleRate: positiveNumber(opts.sampleRate, "--sample-rate"),
+        },
+      },
+      GENERATE,
+    );
+    console.log(JSON.stringify(result));
+  } catch (e) {
+    handleSocketError(e);
+  }
+}
+
 type OpenOptions = { background?: boolean };
 
-/** `open -a` on a running app only activates it, so this is safe to always run. */
-function launchApp(background: boolean): Promise<boolean> {
-  const args = background ? ["-g", "-a", APP_NAME, "--args", "--hidden"] : ["-a", APP_NAME];
-  return new Promise((res) => execFile("open", args, (err) => res(!err)));
+function sameProjectPath(left: string, right: string): boolean {
+  const a = resolve(left).replace(/[\\/]+$/, "");
+  const b = resolve(right).replace(/[\\/]+$/, "");
+  return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+async function waitForProjectMount(dir: string, timeoutMs = 30000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const context = await editor.context.query();
+      // The project provider is mounted before its source finishes compiling.
+      // Wait for the renderer's world as well so a command chained directly
+      // after `dapi open` cannot observe the editor's empty loading world.
+      if (context.projectDir && sameProjectPath(context.projectDir, dir) && context.projectReady) return;
+    } catch {
+      // Navigation, compilation, and the renderer transport can all be between
+      // states briefly. Retry until the single deadline below.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timed out waiting for ${APP_NAME} to mount and compile ${dir}`);
 }
 
 async function openProject(path: string | undefined, opts: OpenOptions): Promise<void> {
-  // Launching is macOS's job; elsewhere (and when the app is not installed,
-  // e.g. a dev checkout run from the terminal) fall through to the socket,
-  // which answers if the app is running and errors usefully if not.
-  const launched = process.platform === "darwin" && (await launchApp(opts.background ?? false));
+  let running = false;
+  try {
+    await editor.ping.query();
+    running = true;
+  } catch {
+    // No transport yet: cold-launch below.
+  }
+  const launched = running ? false : await launchDesktopApp(opts.background ?? false);
 
   try {
     // A cold launch needs the renderer up before the app can answer; when
     // nothing was launched there is nothing to wait for, so fail fast.
-    if (launched) await waitForCliSocket();
-    else await editor.ping.query();
+    if (!running) {
+      if (launched) await waitForCliSocket();
+      else await editor.ping.query();
+    }
+
+    if (!opts.background) await editor.show.mutate(undefined);
 
     if (path !== undefined) {
       const result = await editor.open.mutate({ dir: resolve(path) });
+      await waitForProjectMount(result.dir);
       console.log(JSON.stringify(result));
     }
   } catch (e) {
@@ -632,6 +734,23 @@ program
   .argument("<id>", 'node id to check or `file:id` when two files use the same id')
   .action((id: string) => checkNode(id));
 
+program
+  .command("render")
+  .alias("export")
+  .description("Render a scene through the same encoder used by the desktop Export command and stream it to a file.")
+  .argument("<id>", 'scene id to render or `file:id` when two files use the same id')
+  .option("-o, --output <path>", "output file path (default: <scene-id>.<format> in the current directory)")
+  .option("-f, --format <format>", "container: mp4, webm, ogg, or mov (default: mp4)")
+  .option("-r, --resolution <pixels>", "output height, for example 720 or 1080")
+  .option("--fps <fps>", "output frame rate")
+  .option("--video-codec <codec>", "video codec: avc, hevc, vp9, av1, or vp8")
+  .option("--video-bitrate <bps>", "video bitrate in bits per second")
+  .option("--no-audio", "disable audio encoding")
+  .option("--audio-codec <codec>", "audio codec: aac or opus")
+  .option("--audio-bitrate <bps>", "audio bitrate in bits per second")
+  .option("--sample-rate <hz>", "audio sample rate")
+  .action((id: string, opts: RenderOptions) => renderNode(id, opts));
+
 const media = program
   .command("media")
   .alias("m")
@@ -762,7 +881,7 @@ program
 program
   .command("fonts")
   .description(
-    `List the local fonts available on this machine (macOS only; does not require the app). These family names are valid \`fontFamily\` values on <text>; each family lists its variants.`,
+    `List the local fonts available on this machine (macOS and Windows; does not require the app). These family names are valid \`fontFamily\` values on <text>; each family lists its variants.`,
   )
   .option("-f, --family <pattern>", "filter to families whose name contains <pattern> (case-insensitive)")
   .option("-w, --weight <weights...>", "filter to variants with the given CSS weight(s), e.g. -w 400 700")

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/diffusionstudio/editor/releases/latest/download/Diffusion-Studio-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS%20Apple%20Silicon-161616?style=flat&logo=apple&logoColor=F8F8F8&labelColor=000000" alt="Download for macOS (Apple Silicon)" /></a>
+  <a href="https://github.com/kaushika05/editor/actions/workflows/windows.yml"><img src="https://img.shields.io/badge/Windows-installer%20artifact-161616?style=flat&logo=windows11&logoColor=F8F8F8&labelColor=000000" alt="Build the Windows installer" /></a>
   <a href="https://discord.com/invite/zPQJrNGuFB"><img src="https://img.shields.io/discord/1115673443141156924?style=flat&logo=discord&logoColor=F8F8F8&label=Discord&labelColor=000000&color=161616" alt="Discord" /></a>
   <a href="https://x.com/diffusionhq"><img src="https://img.shields.io/badge/Follow%20for-Updates-161616?style=flat&logo=x&logoColor=F8F8F8&labelColor=000000" alt="Follow on X" /></a>
   <a href="https://www.ycombinator.com/companies/diffusion-studio"><img src="https://img.shields.io/badge/Combinator-F24-161616?style=flat&logo=ycombinator&logoColor=F8F8F8&labelColor=000000" alt="Y Combinator F24" /></a>
@@ -183,6 +184,7 @@ dapi capture intro -t 0 2 4                              # the frames a render w
 | `dapi open` | Launch the app and open (or create) a project folder, anywhere on disk |
 | `dapi context` | Summary of app state |
 | `dapi capture` | Render frames of a scene, as an export would, to a labelled contact sheet or one PNG per position |
+| `dapi render` / `dapi export` | Render a scene to MP4, WebM, Ogg, or MOV through the desktop encoder |
 | `dapi check` | Check a node's subtree for structural mistakes (black-frame gaps, never-visible nodes, failed sources) and report subtree stats |
 | `dapi media …` | Inspect a file by id or path: `probe`, `grab`, `filmstrip`, `waveform`, `transcribe`, `listen` |
 | `dapi models` / `dapi voices` / `dapi fonts` | Discover generation models, speech voices, local fonts |
@@ -213,9 +215,73 @@ Conventions throughout: single results are one JSON value, collections are JSON 
 | `packages/encoder` | `@diffusionstudio/encoder` | Offline video/audio/image encoding over runtime worlds (mediabunny) |
 | `packages/koota-solid` | `@diffusionstudio/koota-solid` | Solid bindings for koota, ported from `@koota/react` |
 
+## Windows
+
+### Requirements
+
+- Windows 11, 64-bit
+- Node.js 20 or newer and npm for source development
+- A current graphics driver with the WebGPU and WebCodecs features exposed by Chromium; available hardware codecs depend on the GPU and driver
+
+The installed app and packaged `dapi` launcher do not require a separate Node.js installation.
+
+### Develop from source
+
+Run the complete development stack from PowerShell or Windows Terminal:
+
+```powershell
+git clone https://github.com/kaushika05/editor.git
+cd editor
+npm ci
+Copy-Item apps/web/.env.example apps/web/.env
+npm run dev
+```
+
+`npm run dev` builds the CLI, starts Vite, waits for it, builds the desktop
+main/preload processes, and launches Electron. Ctrl+C stops the complete
+process tree. Git Bash and WSL are not required.
+
+To expose the source-build CLI on the user PATH, run:
+
+```powershell
+npm run link:create --workspace=@diffusionstudio/cli
+```
+
+Open a new terminal after creating or removing the link. Undo it with
+`npm run link:remove --workspace=@diffusionstudio/cli`.
+
+### Build and install
+
+```powershell
+npm run make:windows
+```
+
+The unsigned development installer is written below
+`apps\desktop\out\make\squirrel.windows\x64`. Run the generated
+`Diffusion-Studio-x64-Setup.exe` to install it for the current user.
+
+In the packaged application, choose **File > Install dapi Command Line Tool…**,
+then open a new terminal. The app installs a launcher and its runtime below
+`%LOCALAPPDATA%\Diffusion Studio\bin` and adds only that directory to the user
+PATH. It can be reversed with **File > Uninstall dapi Command Line Tool…**.
+
+```powershell
+dapi --help
+dapi open C:\path\to\project
+dapi context
+dapi capture intro -t 0 2
+dapi render intro -o C:\path\to\intro.mp4
+```
+
+### Windows release configuration and known limitations
+
+- CI installers are intentionally unsigned. Production distribution needs a Windows code-signing certificate; unsigned installers can trigger a SmartScreen warning.
+- Auto-update uses Squirrel.Windows through `update-electron-app`. A production update requires published Squirrel release artifacts and signing; development runs never initialize the updater.
+- The web app exposes a Windows download only when `VITE_WINDOWS_DOWNLOAD_URL` points at an installer that deployment has actually published. This fork's Windows workflow uploads its package as a GitHub Actions artifact instead of creating a public branded release.
+
 ## Contributing / local setup
 
-Requirements: Node 20+ and npm.
+Requirements: Node 20+ and npm. The same top-level command works on macOS and Windows.
 
 ```sh
 git clone https://github.com/diffusionstudio/editor.git
@@ -227,10 +293,10 @@ cp apps/web/.env.example apps/web/.env   # required: the app won't run without i
 npm run dev
 ```
 
-To put `dapi` on your PATH (macOS/Homebrew layout; adjust the link target for other setups), link it once:
+To put a source-build `dapi` on your PATH, use the cross-platform linker:
 
 ```sh
-npm run symlink:create --workspace=@diffusionstudio/cli
+npm run link:create --workspace=@diffusionstudio/cli
 ```
 
 The link points at the CLI build, which `npm run dev:desktop` refreshes on every start, so the linked `dapi` always runs the latest code.

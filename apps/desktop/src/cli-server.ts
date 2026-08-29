@@ -10,6 +10,7 @@ import { CLI_WIRE, SOCKET_PATH } from "@diffusionstudio/cli/protocol";
 import type { CliHandshake, CliHandshakeReply } from "@diffusionstudio/cli/protocol";
 import { mainBridge } from "./main-manager";
 import { MAIN_CHANNELS } from "./main-channels";
+import { createHandshakeFrameReader } from "./cli-handshake";
 
 let cliServer: Server | null = null;
 let currentWindow: BrowserWindow | null = null;
@@ -97,7 +98,7 @@ async function deliverHandshake(handshake: CliHandshake, sock: Socket): Promise<
   } catch (err) {
     reply = { ok: false, error: (err as Error).message };
   }
-  if (!sock.destroyed) sock.end(JSON.stringify(reply));
+  if (!sock.destroyed) sock.end(JSON.stringify(reply) + "\n");
 }
 
 export function startCliServer() {
@@ -106,25 +107,31 @@ export function startCliServer() {
 
   cliServer = createServer({ allowHalfOpen: true }, (sock: Socket) => {
     enableHeadless();
-    let buf = "";
-    sock.setEncoding("utf8");
-    sock.setTimeout(60000, () => sock.destroy());
-    sock.on("data", (chunk) => {
-      buf += chunk;
-    });
-    sock.on("end", async () => {
+    const handle = async (raw: string) => {
       sock.setTimeout(0);
       let handshake: CliHandshake;
       try {
-        handshake = JSON.parse(buf) as CliHandshake;
+        handshake = JSON.parse(raw) as CliHandshake;
         if (typeof handshake.port !== "number" || typeof handshake.token !== "string") {
           throw new Error("Malformed handshake");
         }
       } catch {
-        sock.end(JSON.stringify({ ok: false, error: "Invalid handshake" }));
+        sock.end(JSON.stringify({ ok: false, error: "Invalid handshake" }) + "\n");
         return;
       }
       await deliverHandshake(handshake, sock);
+    };
+    const framing = createHandshakeFrameReader((raw) => void handle(raw));
+    sock.setEncoding("utf8");
+    sock.setTimeout(60000, () => sock.destroy());
+    // Newline-framed clients (required on Windows, where named pipes cannot
+    // half-open) are answered as soon as the first line arrives; legacy
+    // clients that frame by half-closing are handled on "end".
+    sock.on("data", (chunk) => {
+      framing.push(chunk);
+    });
+    sock.on("end", () => {
+      framing.end();
     });
     sock.on("error", () => {
       // Client hung up; nothing to do.

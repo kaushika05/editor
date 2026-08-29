@@ -62,7 +62,13 @@ export async function saveAssetAs(asset: Pick<Asset, 'handle' | 'mimeType' | 'pa
 
 	let target: FileSystemFileHandle;
 	try {
-		target = await window.showSaveFilePicker({
+		// TypeScript's DOM library still omits this Chromium/Electron API. Keep
+		// the cast local because this package is typechecked through several
+		// workspace dependency graphs that do not inherit the web app globals.
+		const showSaveFilePicker = (window as unknown as Window & {
+			showSaveFilePicker(options?: unknown): Promise<FileSystemFileHandle>;
+		}).showSaveFilePicker.bind(window);
+		target = await showSaveFilePicker({
 			suggestedName,
 			...(extension && asset.mimeType.includes('/')
 				? { types: [{ description: asset.mimeType, accept: { [asset.mimeType]: [extension] } as Record<`${string}/${string}`, `.${string}`[]> }] }

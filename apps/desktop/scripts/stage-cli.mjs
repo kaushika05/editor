@@ -9,7 +9,7 @@
 //   cli/bin/dapi       shell wrapper, the file that gets linked into PATH
 
 import { execFileSync } from "node:child_process";
-import { chmodSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -43,10 +43,17 @@ writeFileSync(
   ),
 );
 
-execFileSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund", "--no-package-lock"], {
-  cwd: stageDir,
-  stdio: "inherit",
-});
+const npmArgs = ["install", "--omit=dev", "--no-audit", "--no-fund", "--no-package-lock"];
+const npmExecPath = process.env.npm_execpath;
+if (npmExecPath && existsSync(npmExecPath)) {
+  execFileSync(process.execPath, [npmExecPath, ...npmArgs], { cwd: stageDir, stdio: "inherit" });
+} else {
+  execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", npmArgs, {
+    cwd: stageDir,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+}
 
 // The wrapper runs the CLI bundle on the app's own Electron binary in Node
 // mode, so users need no separate Node install. It resolves symlinks first
@@ -65,7 +72,19 @@ export DIFFUSION_APP_PATH="$(cd "$DIR/../../../.." && pwd)"
 ELECTRON_RUN_AS_NODE=1 exec "$DIR/../../../MacOS/Diffusion Studio" "$DIR/../dapi.js" "$@"
 `;
 writeFileSync(join(stageDir, "bin", "dapi"), wrapper);
-chmodSync(join(stageDir, "bin", "dapi"), 0o755);
+if (process.platform !== "win32") chmodSync(join(stageDir, "bin", "dapi"), 0o755);
+
+// The packaged Windows launcher uses the application executable as Node, so
+// the user does not need Node.js installed. Its relative paths are valid both
+// in the unpacked app and after Squirrel installs it.
+const windowsWrapper = `@echo off
+setlocal
+set "DIFFUSION_APP_PATH=%~dp0..\\..\\..\\Diffusion Studio.exe"
+set "ELECTRON_RUN_AS_NODE=1"
+"%DIFFUSION_APP_PATH%" "%~dp0..\\dapi.js" %*
+exit /b %ERRORLEVEL%
+`;
+writeFileSync(join(stageDir, "bin", "dapi.cmd"), windowsWrapper.replaceAll("\n", "\r\n"));
 
 // Mach-O files inside Resources are not reached by the app-bundle signing
 // pass, and notarization rejects unsigned executables; sign them here.

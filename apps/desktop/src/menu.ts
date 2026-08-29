@@ -3,30 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { app, dialog, Menu } from "electron";
-import { execFile } from "node:child_process";
-import { join } from "node:path";
 import type { MenuItemConstructorOptions } from "electron";
+import { installCli, uninstallCli } from "./cli-install";
 
-const CLI_LINK_PATH = "/usr/local/bin/dapi";
-
-// Linking into /usr/local/bin needs elevation; osascript shows the standard
-// macOS admin prompt so the app itself never asks for credentials.
-function linkCli(): Promise<void> {
-  const wrapper = join(process.resourcesPath, "cli", "bin", "dapi");
-  const shell = `mkdir -p /usr/local/bin && ln -sf '${wrapper}' '${CLI_LINK_PATH}'`;
-  const script = `do shell script "${shell.replaceAll('"', '\\"')}" with administrator privileges`;
-  return new Promise((resolve, reject) => {
-    execFile("osascript", ["-e", script], (err) => (err ? reject(err) : resolve()));
-  });
-}
-
-async function installCli() {
+async function showCliInstall() {
   try {
-    await linkCli();
+    const detail = await installCli();
     await dialog.showMessageBox({
       type: "info",
       message: "The dapi command line tool was installed.",
-      detail: `Linked at ${CLI_LINK_PATH}. Run "dapi --help" in a terminal to get started.`,
+      detail,
     });
   } catch (e) {
     const message = (e as Error).message ?? "";
@@ -39,10 +25,25 @@ async function installCli() {
   }
 }
 
-export function setupAppMenu() {
-  if (process.platform !== "darwin") return;
+async function showCliUninstall() {
+  try {
+    const detail = await uninstallCli();
+    await dialog.showMessageBox({
+      type: "info",
+      message: "The dapi command line tool was removed.",
+      detail,
+    });
+  } catch (error) {
+    await dialog.showMessageBox({
+      type: "error",
+      message: "Could not remove the dapi command line tool.",
+      detail: (error as Error).message,
+    });
+  }
+}
 
-  const template: MenuItemConstructorOptions[] = [
+export function setupAppMenu() {
+  const macTemplate: MenuItemConstructorOptions[] = [
     {
       label: app.name,
       submenu: [
@@ -51,7 +52,7 @@ export function setupAppMenu() {
         {
           label: "Install dapi Command Line Tool…",
           enabled: app.isPackaged,
-          click: installCli,
+          click: showCliInstall,
         },
         { type: "separator" },
         { role: "services" },
@@ -69,5 +70,31 @@ export function setupAppMenu() {
     { role: "windowMenu" },
   ];
 
+  const windowsTemplate: MenuItemConstructorOptions[] = [
+    {
+      label: "&File",
+      submenu: [
+        {
+          label: "Install dapi Command Line Tool…",
+          enabled: app.isPackaged,
+          click: showCliInstall,
+        },
+        {
+          label: "Uninstall dapi Command Line Tool…",
+          enabled: app.isPackaged,
+          click: showCliUninstall,
+        },
+        { type: "separator" },
+        { role: "close" },
+        { role: "quit" },
+      ],
+    },
+    { role: "editMenu" },
+    { role: "viewMenu" },
+    { role: "windowMenu" },
+    { role: "help", submenu: [{ role: "about" }] },
+  ];
+
+  const template = process.platform === "darwin" ? macTemplate : windowsTemplate;
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
