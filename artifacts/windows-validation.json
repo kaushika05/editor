@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T20:05:05.9892730-04:00",
+  "overallStatus": "pass",
+  "upstream": {
+    "repository": "https://github.com/diffusionstudio/editor",
+    "baseSha": "aeb873bfc6c239a05821c9af307fca34a06e8928",
+    "issue30": "https://github.com/diffusionstudio/editor/issues/30",
+    "pullRequest31": "https://github.com/diffusionstudio/editor/pull/31",
+    "pullRequest31Commit": "f59cfb9392277997bf035a6cd4cda80d9c957d9f"
+  },
+  "fork": {
+    "url": "https://github.com/kaushika05/editor",
+    "branch": "windows-support",
+    "validatedCommitSha": "3ae94339fe4e42891218fb41a80e1ed0c3e1661d"
+  },
+  "nativeHost": {
+    "os": "Microsoft Windows 11 Home",
+    "version": "10.0.26200",
+    "build": "26200",
+    "architecture": "x64",
+    "node": "v24.18.1",
+    "npm": "11.16.0",
+    "gpus": [
+      "Intel(R) UHD Graphics",
+      "NVIDIA GeForce RTX 4070 Laptop GPU"
+    ]
+  },
+  "githubActions": {
+    "windows": {
+      "status": "pass",
+      "runUrl": "https://github.com/kaushika05/editor/actions/runs/33208736266",
+      "jobUrl": "https://github.com/kaushika05/editor/actions/runs/33208736266/job/98976392834",
+      "runner": "Microsoft Windows Server 2025 10.0.26100 Datacenter",
+      "runnerImage": "windows-2025-vs2026",
+      "runnerImageVersion": "20260824.214.3",
+      "node": "20",
+      "artifact": {
+        "name": "diffusion-studio-windows-3ae94339fe4e42891218fb41a80e1ed0c3e1661d",
+        "id": 9700852672,
+        "archiveBytes": 304377899,
+        "retentionDays": 14
+      }
+    },
+    "macosRegression": {
+      "status": "pass",
+      "runUrl": "https://github.com/kaushika05/editor/actions/runs/33208736226",
+      "jobUrl": "https://github.com/kaushika05/editor/actions/runs/33208736226/job/98976392929",
+      "runner": "macOS 26.5.2 (25F84)",
+      "runnerImage": "macos-26-arm64",
+      "runnerImageVersion": "20260728.0273.1",
+      "validated": [
+        "npm ci",
+        "typecheck",
+        "lint",
+        "Unix socket CLI handshake",
+        "newline and legacy EOF framing",
+        "deep-link routing",
+        "AppKit addon build",
+        "unsigned macOS application package"
+      ]
+    }
+  },
+  "commands": [
+    { "command": "npm run check", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 82979 },
+    { "command": "npm run lint", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 23677, "warnings": 3, "errors": 0 },
+    { "command": "npm run test:cli-handshake", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 2579 },
+    { "command": "npm run test:cli-framing", "platform": "win32", "status": "pass", "exitCode": 0 },
+    { "command": "npm run test:deep-links", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 1771 },
+    { "command": "npm run test:window", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 5358 },
+    { "command": "npm run make:windows", "platform": "win32", "status": "pass", "exitCode": 0, "elapsedMs": 233633 },
+    { "command": "npm run dev", "platform": "win32", "status": "pass", "evidence": "Vite, CLI build, desktop build, and Electron launched from the repository root; Ctrl+C left zero port listeners and zero Electron processes." }
+  ],
+  "windowBehavior": {
+    "status": "pass",
+    "nativeFrame": true,
+    "visible": true,
+    "moved": true,
+    "maximized": true,
+    "restoredFromMaximize": true,
+    "minimized": true,
+    "restoredFromMinimize": true,
+    "fullscreen": true,
+    "leftFullscreen": true,
+    "closed": true,
+    "backgroundThenForeground": {
+      "status": "pass",
+      "backgroundVisible": false,
+      "foregroundVisible": true,
+      "sameRootPid": 25516,
+      "rootProcessCount": 1
+    }
+  },
+  "installer": {
+    "status": "pass",
+    "source": "GitHub Actions artifact from the validated commit",
+    "files": [
+      {
+        "name": "Diffusion-Studio-x64-Setup.exe",
+        "bytes": 152698880,
+        "sha256": "3748f09f78c6f67e45e5bc2ca633ab214ea2fbe447bdf1099e0a87aa0fab93d0"
+      },
+      {
+        "name": "diffusion_studio-0.200.0-full.nupkg",
+        "bytes": 152451869,
+        "sha256": "15e5f9c91840b2fe727f95a0b7d5df4951060a5a4babc4c53add352aaa4276ce"
+      },
+      {
+        "name": "RELEASES",
+        "bytes": 89,
+        "sha256": "7e5fc7802e2f325b495afdf08b18a20db9ef70752fcea7ca24ed7395ebdd68a5"
+      }
+    ],
+    "contentsVerified": [
+      "Diffusion Studio.exe",
+      "renderer web bundle",
+      "cli/dapi.js",
+      "cli/dapi.cmd",
+      "CLI runtime node_modules",
+      "reference and examples docs",
+      "icon.ico"
+    ]
+  },
+  "cli": {
+    "help": "pass",
+    "context": "pass",
+    "openColdLaunch": "pass",
+    "openWaitsForCompiledScene": "pass",
+    "openBackground": "pass",
+    "openSurfacesRunningApp": "pass",
+    "namedPipeNewlineHandshake": "pass",
+    "legacyEofFraming": "pass",
+    "screenshot": "pass",
+    "logs": "pass",
+    "mediaProbe": "pass",
+    "mediaGrab": "pass",
+    "mediaFilmstrip": "pass",
+    "mediaWaveform": "pass",
+    "capture": "pass",
+    "structuralCheck": "pass",
+    "renderExport": "pass",
+    "fonts": {
+      "status": "pass",
+      "familiesObserved": ["Agency FB", "Algerian", "Arial"],
+      "arialVariantsObserved": ["400 normal", "400 italic", "700 normal", "700 italic", "900 normal"],
+      "familyWeightStyleLimitAndNamesOnlyFilters": "pass"
+    },
+    "sourceLauncherInstallRemove": {
+      "status": "pass",
+      "helpExitCode": 0,
+      "userPathRestoredExactly": true,
+      "pathBytesBefore": 1754,
+      "pathBytesAfter": 1754,
+      "launcherRemoved": true
+    },
+    "packagedLauncher": {
+      "status": "pass",
+      "usesBundledElectronNodeMode": true,
+      "requiresSeparateNode": false,
+      "coldLaunchObserved": true
+    }
+  },
+  "desktop": {
+    "launch": "pass",
+    "secondInstance": "pass",
+    "protocolRegistration": "pass",
+    "protocolRegistryHive": "HKCU\\Software\\Classes\\diffusion",
+    "unknownProtocolUrlNoCrash": "pass",
+    "authAndCheckoutDeepLinkRouting": "pass",
+    "defaultProjectsRoot": {
+      "status": "pass",
+      "path": "C:\\Users\\kaywi\\Videos\\Diffusion Studio",
+      "projectCreatedThroughDashboard": true,
+      "validationProjectMovedOutAfterTest": true
+    },
+    "folderPicker": {
+      "status": "pass",
+      "implementation": "Electron dialog.showOpenDialog with openDirectory and createDirectory",
+      "evidence": "The packaged app opened the native Choose projects folder dialog, navigated to the workspace validation folder, selected it, and updated the dashboard root to the returned absolute path."
+    },
+    "oneDriveWarningNoCrash": "pass",
+    "projectCreateOpenCompileEditSaveWatch": "pass",
+    "developmentUpdaterDisabled": "pass",
+    "packagedUpdaterStartupNoCrash": "pass",
+    "inAppCliMenu": {
+      "status": "pass",
+      "installMenuInvoked": true,
+      "installedLauncherHelp": "pass",
+      "uninstallMenuInvoked": true,
+      "uninstallConfirmationObserved": true,
+      "launcherRemoved": true,
+      "runtimeRemoved": true,
+      "userPathRestoredLength": 1754
+    }
+  },
+  "endToEnd": {
+    "status": "pass",
+    "project": {
+      "resolution": [1920, 1080],
+      "durationSeconds": 4,
+      "background": "#111827",
+      "visibleTextAfterEdit": "Windows Native",
+      "animatedProperty": "rectangle x from 120 to 260",
+      "audio": "four-second 440 Hz WAV"
+    },
+    "openContextAndCheck": {
+      "status": "pass",
+      "projectReady": true,
+      "nodeCount": 4,
+      "nodesByKind": { "scene": 1, "shape": 1, "text": 1, "audio": 1 },
+      "errorIssues": 0
+    },
+    "captures": {
+      "status": "pass",
+      "startPngBytes": 23074,
+      "midpointBeforeEditPngBytes": 39284,
+      "midpointAfterEditPngBytes": 38291,
+      "visualReview": "The midpoint capture changed from an orange panel with Windows Ready text to a green panel with Windows Native text after a source edit and watcher recompile."
+    },
+    "render": {
+      "status": "pass",
+      "file": "windows-smoke-audio.mp4",
+      "bytes": 270456,
+      "sha256": "ad52c9e9ce23598a6a11c8edbbb271cac6ca11c4a1782ba43f46bbc415848662",
+      "durationSeconds": 4.010666666666666,
+      "video": { "codec": "AVC", "width": 1280, "height": 720, "fps": 30, "packets": 120 },
+      "audio": { "codec": "AAC", "sampleRate": 48000, "channels": 2, "packets": 188 }
+    },
+    "mediaInspection": {
+      "status": "pass",
+      "filmstripPngBytes": 213425,
+      "waveformPngBytes": 154089,
+      "grabStartAndMidpoint": "pass"
+    },
+    "applicationScreenshot": {
+      "status": "pass",
+      "width": 1184,
+      "height": 735,
+      "freshColdOpenImmediatelyShowsScene": true
+    },
+    "logs": {
+      "status": "pass",
+      "fatalErrors": 0,
+      "renderMessages": ["Encoded frames at 118.82FPS", "Finalizing file", "Export complete"]
+    }
+  },
+  "limitations": [
+    "The CI installer is unsigned. Production distribution still requires a Windows code-signing certificate and release-channel configuration; unsigned builds may trigger SmartScreen.",
+    "Auto-update startup is structurally validated, but installing an update from a signed published Windows release was not exercised because this fork has no release/signing infrastructure.",
+    "The public web UI exposes Windows only when VITE_WINDOWS_DOWNLOAD_URL is configured to a real artifact."
+  ]
+}

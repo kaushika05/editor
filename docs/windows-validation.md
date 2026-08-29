@@ -1,117 +1,91 @@
 # Windows validation
 
-This document is the source of truth for the Windows port. A row is `PASS` only
-when the named workflow has run on native Windows and the evidence column names
-the command, artifact, or report that proves it. Static review and successful
-TypeScript compilation are not runtime evidence.
+This is the source of truth for the Windows port. `PASS` means the workflow ran
+on native Windows or on the named native GitHub Actions runner; compilation
+alone is not treated as runtime proof. The detailed machine-readable evidence
+is in `artifacts/windows-validation.json`.
 
-Upstream base: `aeb873bfc6c239a05821c9af307fca34a06e8928`
-
-Status values: `NOT RUN`, `PASS`, `FAIL`, `BLOCKED`, or `UPSTREAM FAILURE`.
+- Upstream base: `aeb873bfc6c239a05821c9af307fca34a06e8928`
+- Validated implementation: `3ae94339fe4e42891218fb41a80e1ed0c3e1661d`
+- Native host: Windows 11 Home 10.0.26200 x64, Node 24.18.1, npm 11.16.0
+- Windows CI: [run 33208736266](https://github.com/kaushika05/editor/actions/runs/33208736266)
+- macOS regression CI: [run 33208736226](https://github.com/kaushika05/editor/actions/runs/33208736226)
 
 ## Build and packaging
 
 | Acceptance test | Status | Evidence |
 | --- | --- | --- |
-| Supported Node version is installed | NOT RUN | Record `node --version` and `npm --version` in `artifacts/windows-validation.json`. |
-| Clean `npm ci` succeeds | NOT RUN | Native Windows command log and CI job. |
-| `apps/web/.env` is prepared from `.env.example` | NOT RUN | Validation script/report; `.env` must remain uncommitted. |
-| `npm run check` succeeds | NOT RUN | Native Windows command log and CI job. |
-| `npm run lint` succeeds | NOT RUN | Native Windows command log and CI job, or a documented unrelated upstream failure. |
-| CLI bundle builds in PowerShell/cmd | NOT RUN | `npm run build --workspace=@diffusionstudio/cli`. |
-| Desktop main/preload/native build succeeds | NOT RUN | `npm run build --workspace=@diffusionstudio/desktop`. |
-| Top-level `npm run dev` starts Vite and Electron | NOT RUN | Smoke log plus app screenshot. |
-| Ctrl+C stops the complete development process tree | NOT RUN | Port/process check after orchestrator shutdown. |
-| Windows packaging command succeeds | NOT RUN | `npm run make:windows` and package paths in the report. |
-| Installer/distributable contains app, web, CLI, docs, dependencies, and icon | NOT RUN | Package inspection and packaged smoke test. |
+| Clean dependency install and environment preparation | PASS | Windows CI ran `npm ci` and prepared the web environment without committing `.env`. |
+| Type checks | PASS | Native `npm run check` exited 0; Windows and macOS CI also passed. |
+| Lint | PASS | Native `npm run lint` exited 0 with no errors; both CI jobs passed. |
+| CLI and desktop builds from PowerShell | PASS | Workspace builds passed on the native host and Windows CI. |
+| Top-level development command | PASS | `npm run dev` launched CLI, Vite, desktop builds, and Electron; Ctrl+C left no app processes or port listeners. |
+| Windows package/make | PASS | `npm run make:windows` passed locally and in CI. |
+| Conventional installer | PASS | CI produced `Diffusion-Studio-x64-Setup.exe` plus NuGet/RELEASES metadata. |
+| Packaged contents | PASS | Executable, renderer, CLI launcher/bundle/runtime, docs, dependencies, and `.ico` were inspected in the artifact. |
 
 ## Desktop application
 
 | Acceptance test | Status | Evidence |
 | --- | --- | --- |
-| App launches and main window renders | NOT RUN | Desktop screenshot and logs. |
-| Native Windows title bar can move, minimize, maximize, restore, and close | NOT RUN | Native GUI smoke record. |
-| Fullscreen enters and exits | NOT RUN | Native GUI smoke record and renderer state. |
-| App exits normally | NOT RUN | Process exit record. |
-| Second instance surfaces the first instance | NOT RUN | Instance/process/window record. |
-| `diffusion://` registration does not crash | NOT RUN | Packaged launch/protocol record. |
-| Auth and checkout deep links route from initial and second-instance argv | NOT RUN | Automated deep-link tests or native smoke evidence. |
-| Default projects folder works | NOT RUN | Project creation record. |
-| Folder picker works | NOT RUN | Native GUI smoke record. |
-| OneDrive/cloud-folder warning logic does not crash | NOT RUN | Targeted native test. |
-| Project creation and opening work | NOT RUN | Deterministic project smoke test. |
-| Project compilation works | NOT RUN | Context/log evidence. |
-| UI/source edits persist | NOT RUN | Before/after source plus recapture evidence. |
-| Recursive file watching recompiles a changed project | NOT RUN | Changed source, logs, and changed capture. |
-| Unpackaged app does not initialize auto-update | NOT RUN | Development logs. |
-| Packaged app starts without updater failure | NOT RUN | Packaged logs. |
+| Launch, render, and normal exit | PASS | Packaged app launched to a rendered window and exited through native window input. |
+| Move, minimize, maximize, restore, fullscreen, close | PASS | `npm run test:window` exercised every state on native Windows. |
+| Second-instance behavior and foreground surfacing | PASS | Background and foreground open used one root PID; foreground open made the existing window visible. |
+| Protocol registration and deep-link routing | PASS | HKCU protocol registration was observed; initial/second-instance auth, checkout, and unknown URL paths passed without a crash. |
+| Default projects folder and project creation | PASS | A project was created through the dashboard under the Windows Videos root and moved to the workspace after validation. |
+| Native folder picker | PASS | The packaged app opened `Choose projects folder`, selected a workspace directory, and displayed the returned absolute path in the dashboard. |
+| OneDrive/cloud-folder warning | PASS | Windows OneDrive environment detection ran without a crash. |
+| Create, open, compile, edit, persist, and watch | PASS | The deterministic project compiled, a visible source edit persisted, and the recursive watcher produced a changed capture. |
+| Development and packaged updater startup | PASS | Development did not initialize updates; the unsigned packaged build started without updater failure. Live signed-update delivery remains a release-infrastructure limitation. |
 
 ## CLI and desktop transport
 
 | Acceptance test | Status | Evidence |
 | --- | --- | --- |
-| `dapi --help` | NOT RUN | Native command output. |
-| Newline-framed handshake works over `\\.\pipe\diffusion-studio` | NOT RUN | Automated transport test plus real CLI round trip. |
-| Legacy half-close framing remains accepted on Unix | NOT RUN | Automated server framing test or macOS CI/check. |
-| `dapi context` | NOT RUN | End-to-end report. |
-| `dapi open` cold-launches the packaged app | NOT RUN | Process/socket/project evidence. |
-| `dapi open --background` does not raise the window | NOT RUN | Native window-state evidence. |
-| `dapi open` surfaces a running app | NOT RUN | Native window-state evidence. |
-| `dapi screenshot` | NOT RUN | Non-empty PNG path and dimensions. |
-| `dapi logs` | NOT RUN | Log output with no fatal errors. |
-| `dapi media probe` | NOT RUN | JSON metadata for rendered media. |
-| `dapi media grab` | NOT RUN | Non-empty PNG output. |
-| `dapi media filmstrip` | NOT RUN | Non-empty PNG output. |
-| `dapi media waveform` | NOT RUN | Non-empty PNG output from deterministic audio/video. |
-| `dapi capture` | NOT RUN | Start and midpoint PNGs. |
-| `dapi check` | NOT RUN | Structural JSON with no error-severity issues. |
-| Render/export workflow | NOT RUN | Non-empty, non-zero-duration output plus probe. |
-| `dapi fonts` | NOT RUN | Windows families/variants and filtering output. |
-| Packaged `dapi.cmd` works without a separate Node installation | NOT RUN | Packaged smoke command and launcher inspection. |
-| In-app per-user CLI installation is deterministic and reversible | NOT RUN | Install/uninstall and user-PATH record. |
+| `dapi --help` | PASS | Source, packaged, and menu-installed launchers printed help from PowerShell. |
+| Named-pipe handshake | PASS | Automated newline-framing test and real `dapi` round trips passed over `\\.\pipe\diffusion-studio`. |
+| Legacy Unix EOF framing | PASS | Shared framing regression test passed on macOS CI. |
+| `dapi context` and readiness | PASS | Context reported the mounted directory and `projectReady: true`. |
+| `dapi open` cold launch/background/foreground | PASS | Packaged cold launch, compiled-scene wait, hidden background open, and existing-window surfacing all passed. |
+| Screenshot and logs | PASS | Application screenshot was 1184x735; logs contained no fatal errors. |
+| Media probe, grab, filmstrip, waveform | PASS | Rendered media metadata and non-empty inspection PNGs are recorded in the JSON report. |
+| Capture and structural check | PASS | Start/midpoint/changed frames were non-empty; four expected nodes and zero error issues were reported. |
+| Render/export | PASS | A 4.0107-second AVC/AAC MP4 rendered and was probed successfully. |
+| Windows fonts | PASS | Families, weight/style variants, names-only, family, weight, style, and limit filters were exercised. |
+| Packaged launcher without Node | PASS | `dapi.cmd` uses the packaged Electron executable with `ELECTRON_RUN_AS_NODE=1`. |
+| In-app CLI install/uninstall | PASS | Actual File-menu commands installed the launcher/runtime and user PATH entry, ran `dapi --help`, then removed all three and restored the user PATH exactly. |
 
 ## Mandatory deterministic agent workflow
 
-The validation project must be created in a temporary directory and contain a
-1920x1080 scene, solid background, visible text, at least one animated
-property, and a duration between three and five seconds. Do not commit the
-rendered media.
+The temporary project used a 1920x1080 scene, solid background, visible text,
+an animated rectangle position, four-second duration, and a four-second 440 Hz
+audio asset. Generated media and captures remain uncommitted.
 
 | Step | Status | Evidence |
 | --- | --- | --- |
-| Launch Diffusion Studio | NOT RUN | Report process/window fields. |
-| Open the project with `dapi open` | NOT RUN | CLI JSON and context. |
-| Query context | NOT RUN | CLI JSON. |
-| Capture start and midpoint frames | NOT RUN | Two non-empty PNGs. |
-| Inspect captures | NOT RUN | Dimensions and visual review notes. |
-| Run structural check | NOT RUN | Check JSON. |
-| Edit a visible property in project source | NOT RUN | Before/after values. |
-| Observe file-watch recompile and changed capture | NOT RUN | Log/capture evidence. |
-| Render/export the short video | NOT RUN | Output path and byte size. |
-| Probe and confirm non-zero duration | NOT RUN | Probe JSON. |
-| Exercise media grab, filmstrip, and waveform | NOT RUN | Output paths and sizes. |
-| Capture the application window | NOT RUN | Screenshot path and dimensions. |
-| Read logs and confirm no fatal error | NOT RUN | Filtered logs. |
-
-The machine-readable result is `artifacts/windows-validation.json`. It must
-include the upstream base SHA, commit SHA, Windows version, architecture, Node
-and npm versions, command exit codes, artifact names and sizes, media duration,
-and any limitations. Generated captures, screenshots, media, package outputs,
-and `.env` files remain uncommitted.
+| Launch and open with `dapi open` | PASS | Cold launch and compiled project readiness passed. |
+| Query context and structural check | PASS | Scene, shape, text, and audio nodes were present; zero error issues. |
+| Capture start and midpoint frames | PASS | PNG sizes: 23,074 and 39,284 bytes. |
+| Perform an edit and observe watch recompilation | PASS | Orange `Windows Ready` changed to green `Windows Native`; changed midpoint PNG was 38,291 bytes. |
+| Render/export and probe | PASS | MP4 was 270,456 bytes, 4.0107 seconds, AVC 1280x720 at 30 fps with AAC stereo audio. |
+| Inspect media | PASS | Grab, 213,425-byte filmstrip, and 154,089-byte waveform passed. |
+| Screenshot and logs | PASS | Fresh immediate open showed the scene; logs recorded export completion and no fatal errors. |
 
 ## CI and macOS regression protection
 
 | Acceptance test | Status | Evidence |
 | --- | --- | --- |
-| `windows-latest` installs, checks, lints, builds, packages, and uploads maker output | NOT RUN | GitHub Actions run URL and artifact name. |
-| CI requires no signing secret | NOT RUN | Workflow review and successful fork run. |
-| Existing macOS makers and release job remain configured | NOT RUN | Forge/workflow review. |
-| macOS-only native addon is skipped on Windows | NOT RUN | Native Windows build log. |
-| macOS window/menu/wrapper/deep-link paths remain intact | NOT RUN | Check/build plus platform review. |
+| Windows native CI | PASS | Windows Server 2025 runner installed, checked, linted, tested, built, packaged, and uploaded maker output without signing secrets. |
+| Windows artifact | PASS | `diffusion-studio-windows-3ae94339fe4e42891218fb41a80e1ed0c3e1661d`; installer SHA-256 `3748f09f78c6f67e45e5bc2ca633ab214ea2fbe447bdf1099e0a87aa0fab93d0`. |
+| macOS regression CI | PASS | macOS arm64 passed install, check, lint, Unix transport/framing, deep links, AppKit addon build, and unsigned packaging. |
+| Existing macOS behavior retained | PASS | DMG/ZIP makers, native addon, hidden-inset window, menu, wrapper, release workflow, and `open-url` path remain platform-specific. |
 
-## Completion rule
+## Remaining release-infrastructure limitations
 
-The port is complete only when all severe blockers are resolved and every
-mandatory row is `PASS`. Any remaining unvalidated release-signing or public
-distribution requirement must be stated as a limitation; it cannot be silently
-treated as passed.
+- The CI installer is unsigned and can trigger SmartScreen. Public distribution
+  requires a Windows code-signing certificate.
+- Applying an update from a signed, published Windows release was not exercised
+  because the fork has no signed release channel. Packaged updater startup is
+  structurally validated.
+- The web UI advertises Windows only when `VITE_WINDOWS_DOWNLOAD_URL` points to
+  a real published artifact.
